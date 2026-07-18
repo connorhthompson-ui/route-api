@@ -20,6 +20,9 @@ PREP_TIME_MIN = 3
 # instead of walking the full rectangle. The closer dx (avenue-blocks) and
 # dy (street-blocks) are to each other, the more "diagonal" the walk is,
 # and the bigger the time saving versus the naive block-by-block estimate.
+# A leg with dx=0 and dy=0 always gets discount=1.0, i.e. the base time
+# passes through unchanged -- used for real, measured walk times that
+# shouldn't be run through the estimate formula at all.
 MAX_SAVINGS = 0.25
 
 
@@ -184,7 +187,7 @@ def build_routes_to_work() -> list[RouteOption]:
             "6-train-77th",
             "6 train from 77th St",
             [
-                _walk_leg("Walk to 77th St station", base_duration_min=6, dx=4, dy=2),
+                _walk_leg("Walk to 77th St station", base_duration_min=15, dx=4, dy=2),
                 _subway_leg(
                     "{line} train (local) to 51st St",
                     lines=["6"],
@@ -193,23 +196,23 @@ def build_routes_to_work() -> list[RouteOption]:
                     fallback_line="6",
                     fallback_min=14,
                 ),
-                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=7, dx=4, dy=2),
+                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=14, dx=4, dy=2),
             ],
         ),
         _route(
             "m79-bus-6-train",
             "M79 SBS bus + 6 train",
             [
-                _walk_leg("Walk to 1st Ave & 79th St", base_duration_min=2, dx=1, dy=0),
+                _walk_leg("Walk to 1st Ave & 79th St", base_duration_min=0, dx=1, dy=0),
                 _bus_leg(
                     "M79 Select Bus westbound to Lexington Ave",
                     stop_id="MTA_401882",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=6,
-                    fallback_line="M79 SBS",
+                    fallback_line="M79+",
                     fallback_min=6,
                 ),
-                _walk_leg("Walk to 6 train entrance", base_duration_min=2, dx=0, dy=1),
+                _walk_leg("Walk to 6 train entrance", base_duration_min=3, dx=0, dy=1),
                 _subway_leg(
                     "{line} train to 51st St",
                     lines=["6"],
@@ -218,14 +221,14 @@ def build_routes_to_work() -> list[RouteOption]:
                     fallback_line="6",
                     fallback_min=14,
                 ),
-                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=7, dx=4, dy=2),
+                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=14, dx=4, dy=2),
             ],
         ),
         _route(
             "q-train-72nd",
             "Q train from 72nd St",
             [
-                _walk_leg("Walk to 72nd St station", base_duration_min=10, dx=2, dy=7),
+                _walk_leg("Walk to 72nd St station", base_duration_min=14, dx=2, dy=7),
                 _subway_leg(
                     "{line} train to 57th St-7th Ave",
                     lines=["Q", "N"],
@@ -234,14 +237,14 @@ def build_routes_to_work() -> list[RouteOption]:
                     fallback_line="Q",
                     fallback_min=5,
                 ),
-                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=10, dx=1, dy=8),
+                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=11, dx=1, dy=8),
             ],
         ),
         _route(
             "q-train-86th",
             "Q train from 86th St",
             [
-                _walk_leg("Walk to 86th St station", base_duration_min=10, dx=2, dy=7),
+                _walk_leg("Walk to 86th St station", base_duration_min=14, dx=2, dy=7),
                 _subway_leg(
                     "{line} train to 57th St-7th Ave",
                     lines=["Q", "N"],
@@ -250,14 +253,14 @@ def build_routes_to_work() -> list[RouteOption]:
                     fallback_line="Q",
                     fallback_min=7,
                 ),
-                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=10, dx=1, dy=8),
+                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=11, dx=1, dy=8),
             ],
         ),
         _route(
             "q-63-m-rockefeller",
             "Q train + M train (via Lex-63)",
             [
-                _walk_leg("Walk to 72nd St station", base_duration_min=10, dx=2, dy=7),
+                _walk_leg("Walk to 72nd St station", base_duration_min=14, dx=2, dy=7),
                 _subway_leg(
                     "{line} train to Lexington Av-63 St",
                     lines=["Q", "N"],
@@ -281,7 +284,7 @@ def build_routes_to_work() -> list[RouteOption]:
             "q-57-nr-49",
             "Q train + N/R train (via 57 St)",
             [
-                _walk_leg("Walk to 72nd St station", base_duration_min=10, dx=2, dy=7),
+                _walk_leg("Walk to 72nd St station", base_duration_min=14, dx=2, dy=7),
                 _subway_leg(
                     "{line} train to 57th St-7th Ave",
                     lines=["Q", "N"],
@@ -298,14 +301,14 @@ def build_routes_to_work() -> list[RouteOption]:
                     fallback_line="R",
                     fallback_min=2,
                 ),
-                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=3, dx=1, dy=0),
+                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=4, dx=1, dy=0),
             ],
         ),
         _route(
             "n-direct-72-49",
             "N train from 72nd St (rush hour only)",
             [
-                _walk_leg("Walk to 72nd St station", base_duration_min=10, dx=2, dy=7),
+                _walk_leg("Walk to 72nd St station", base_duration_min=14, dx=2, dy=7),
                 _subway_leg(
                     "{line} train (local) to 49th St",
                     lines=["N"],
@@ -315,14 +318,14 @@ def build_routes_to_work() -> list[RouteOption]:
                     fallback_min=0,
                     required=True,
                 ),
-                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=3, dx=1, dy=0),
+                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=4, dx=1, dy=0),
             ],
         ),
         _route(
             "n-direct-86-49",
             "N train from 86th St (rush hour only)",
             [
-                _walk_leg("Walk to 86th St station", base_duration_min=10, dx=2, dy=7),
+                _walk_leg("Walk to 86th St station", base_duration_min=14, dx=2, dy=7),
                 _subway_leg(
                     "{line} train (local) to 49th St",
                     lines=["N"],
@@ -332,20 +335,20 @@ def build_routes_to_work() -> list[RouteOption]:
                     fallback_min=0,
                     required=True,
                 ),
-                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=3, dx=1, dy=0),
+                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=4, dx=1, dy=0),
             ],
         ),
         _route(
             "m79-1-train",
             "M79 SBS bus + 1 train",
             [
-                _walk_leg("Walk to 1st Ave & 79th St", base_duration_min=2, dx=1, dy=0),
+                _walk_leg("Walk to 1st Ave & 79th St", base_duration_min=0, dx=1, dy=0),
                 _bus_leg(
                     "M79 Select Bus westbound to Broadway",
                     stop_id="MTA_401882",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=14,
-                    fallback_line="M79 SBS",
+                    fallback_line="M79+",
                     fallback_min=14,
                 ),
                 _walk_leg("Walk to 1 train entrance", base_duration_min=2, dx=0, dy=1),
@@ -357,20 +360,20 @@ def build_routes_to_work() -> list[RouteOption]:
                     fallback_line="1",
                     fallback_min=9,
                 ),
-                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=5, dx=2, dy=0),
+                _walk_leg("Walk to 1221 Ave of the Americas", base_duration_min=7, dx=2, dy=0),
             ],
         ),
         _route(
             "m79-m7",
             "M79 SBS bus + M7 bus",
             [
-                _walk_leg("Walk to 1st Ave & 79th St", base_duration_min=2, dx=1, dy=0),
+                _walk_leg("Walk to 1st Ave & 79th St", base_duration_min=0, dx=1, dy=0),
                 _bus_leg(
                     "M79 Select Bus westbound to Amsterdam Ave",
                     stop_id="MTA_401882",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=12,
-                    fallback_line="M79 SBS",
+                    fallback_line="M79+",
                     fallback_min=12,
                 ),
                 _walk_leg("Walk to Columbus Ave & 78th St", base_duration_min=2, dx=1, dy=1),
@@ -389,13 +392,13 @@ def build_routes_to_work() -> list[RouteOption]:
             "m79-b-train",
             "M79 SBS bus + B train",
             [
-                _walk_leg("Walk to 1st Ave & 79th St", base_duration_min=2, dx=1, dy=0),
+                _walk_leg("Walk to 1st Ave & 79th St", base_duration_min=0, dx=1, dy=0),
                 _bus_leg(
                     "M79 Select Bus westbound to Central Park West",
                     stop_id="MTA_401882",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=10,
-                    fallback_line="M79 SBS",
+                    fallback_line="M79+",
                     fallback_min=10,
                 ),
                 _walk_leg(
@@ -419,7 +422,7 @@ def build_routes_to_work() -> list[RouteOption]:
             "m31-m-train",
             "M31 bus + M train",
             [
-                _walk_leg("Walk to York Ave & 79th St", base_duration_min=1, dx=0, dy=0),
+                _walk_leg("Walk to York Ave & 79th St", base_duration_min=2, dx=0, dy=0),
                 _bus_leg(
                     "M31 bus to 57th St & 6th Ave",
                     stop_id="MTA_402348",
@@ -446,7 +449,7 @@ def build_routes_to_work() -> list[RouteOption]:
             [
                 _walk_leg(
                     "Walk straight down to 1221 Ave of the Americas",
-                    base_duration_min=51,
+                    base_duration_min=58,
                     dx=8,
                     dy=30,
                 ),
@@ -463,7 +466,7 @@ def build_routes_to_home() -> list[RouteOption]:
             "6-train-77th",
             "6 train to 77th St",
             [
-                _walk_leg("Walk to 51st St station", base_duration_min=7, dx=4, dy=2),
+                _walk_leg("Walk to 51st St station", base_duration_min=14, dx=4, dy=2),
                 _subway_leg(
                     "{line} train (local) to 77th St",
                     lines=["6"],
@@ -472,14 +475,14 @@ def build_routes_to_home() -> list[RouteOption]:
                     fallback_line="6",
                     fallback_min=14,
                 ),
-                _walk_leg("Walk to 435 E 79th St", base_duration_min=6, dx=4, dy=2),
+                _walk_leg("Walk to 435 E 79th St", base_duration_min=15, dx=4, dy=2),
             ],
         ),
         _route(
             "m79-bus-6-train",
             "6 train + M79 SBS bus",
             [
-                _walk_leg("Walk to 51st St station", base_duration_min=7, dx=4, dy=2),
+                _walk_leg("Walk to 51st St station", base_duration_min=14, dx=4, dy=2),
                 _subway_leg(
                     "{line} train to 77th St",
                     lines=["6"],
@@ -488,13 +491,13 @@ def build_routes_to_home() -> list[RouteOption]:
                     fallback_line="6",
                     fallback_min=14,
                 ),
-                _walk_leg("Walk to M79 SBS stop", base_duration_min=2, dx=0, dy=1),
+                _walk_leg("Walk to M79 SBS stop", base_duration_min=3, dx=0, dy=1),
                 _bus_leg(
                     "M79 Select Bus eastbound to 1st Ave",
                     stop_id="MTA_405169",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=6,
-                    fallback_line="M79 SBS",
+                    fallback_line="M79+",
                     fallback_min=6,
                 ),
                 _walk_leg("Walk to 435 E 79th St", base_duration_min=2, dx=1, dy=0),
@@ -504,7 +507,7 @@ def build_routes_to_home() -> list[RouteOption]:
             "q-train-72nd",
             "Q train to 72nd St",
             [
-                _walk_leg("Walk to 57th St-7th Ave station", base_duration_min=10, dx=1, dy=8),
+                _walk_leg("Walk to 57th St-7th Ave station", base_duration_min=11, dx=1, dy=8),
                 _subway_leg(
                     "{line} train to 72nd St",
                     lines=["Q", "N"],
@@ -513,14 +516,14 @@ def build_routes_to_home() -> list[RouteOption]:
                     fallback_line="Q",
                     fallback_min=5,
                 ),
-                _walk_leg("Walk to 435 E 79th St", base_duration_min=10, dx=2, dy=7),
+                _walk_leg("Walk to 435 E 79th St", base_duration_min=14, dx=2, dy=7),
             ],
         ),
         _route(
             "q-train-86th",
             "Q train to 86th St",
             [
-                _walk_leg("Walk to 57th St-7th Ave station", base_duration_min=10, dx=1, dy=8),
+                _walk_leg("Walk to 57th St-7th Ave station", base_duration_min=11, dx=1, dy=8),
                 _subway_leg(
                     "{line} train to 86th St",
                     lines=["Q", "N"],
@@ -529,7 +532,7 @@ def build_routes_to_home() -> list[RouteOption]:
                     fallback_line="Q",
                     fallback_min=7,
                 ),
-                _walk_leg("Walk to 435 E 79th St", base_duration_min=10, dx=2, dy=7),
+                _walk_leg("Walk to 435 E 79th St", base_duration_min=14, dx=2, dy=7),
             ],
         ),
         _route(
@@ -553,14 +556,14 @@ def build_routes_to_home() -> list[RouteOption]:
                     fallback_line="Q",
                     fallback_min=2,
                 ),
-                _walk_leg("Walk to 435 E 79th St", base_duration_min=10, dx=2, dy=7),
+                _walk_leg("Walk to 435 E 79th St", base_duration_min=14, dx=2, dy=7),
             ],
         ),
         _route(
             "q-57-nr-49",
             "N/R train + Q train (via 57 St)",
             [
-                _walk_leg("Walk to 49th St station", base_duration_min=3, dx=1, dy=0),
+                _walk_leg("Walk to 49th St station", base_duration_min=2, dx=1, dy=0),
                 _subway_leg(
                     "{line} train to 57th St-7th Ave",
                     lines=["N", "R"],
@@ -577,14 +580,14 @@ def build_routes_to_home() -> list[RouteOption]:
                     fallback_line="Q",
                     fallback_min=5,
                 ),
-                _walk_leg("Walk to 435 E 79th St", base_duration_min=10, dx=2, dy=7),
+                _walk_leg("Walk to 435 E 79th St", base_duration_min=14, dx=2, dy=7),
             ],
         ),
         _route(
             "n-direct-72-49",
             "N train to 72nd St (rush hour only)",
             [
-                _walk_leg("Walk to 49th St station", base_duration_min=3, dx=1, dy=0),
+                _walk_leg("Walk to 49th St station", base_duration_min=2, dx=1, dy=0),
                 _subway_leg(
                     "{line} train (local) to 72nd St",
                     lines=["N"],
@@ -594,14 +597,14 @@ def build_routes_to_home() -> list[RouteOption]:
                     fallback_min=0,
                     required=True,
                 ),
-                _walk_leg("Walk to 435 E 79th St", base_duration_min=10, dx=2, dy=7),
+                _walk_leg("Walk to 435 E 79th St", base_duration_min=14, dx=2, dy=7),
             ],
         ),
         _route(
             "n-direct-86-49",
             "N train to 86th St (rush hour only)",
             [
-                _walk_leg("Walk to 49th St station", base_duration_min=3, dx=1, dy=0),
+                _walk_leg("Walk to 49th St station", base_duration_min=2, dx=1, dy=0),
                 _subway_leg(
                     "{line} train (local) to 86th St",
                     lines=["N"],
@@ -611,14 +614,14 @@ def build_routes_to_home() -> list[RouteOption]:
                     fallback_min=0,
                     required=True,
                 ),
-                _walk_leg("Walk to 435 E 79th St", base_duration_min=10, dx=2, dy=7),
+                _walk_leg("Walk to 435 E 79th St", base_duration_min=14, dx=2, dy=7),
             ],
         ),
         _route(
             "m79-1-train",
             "1 train + M79 SBS bus",
             [
-                _walk_leg("Walk to 50th St station", base_duration_min=5, dx=2, dy=0),
+                _walk_leg("Walk to 50th St station", base_duration_min=7, dx=2, dy=0),
                 _subway_leg(
                     "{line} train to 79th St",
                     lines=["1"],
@@ -633,7 +636,7 @@ def build_routes_to_home() -> list[RouteOption]:
                     stop_id="MTA_403523",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=14,
-                    fallback_line="M79 SBS",
+                    fallback_line="M79+",
                     fallback_min=14,
                 ),
                 _walk_leg("Walk to 435 E 79th St", base_duration_min=2, dx=1, dy=0),
@@ -658,7 +661,7 @@ def build_routes_to_home() -> list[RouteOption]:
                     stop_id="MTA_401024",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=12,
-                    fallback_line="M79 SBS",
+                    fallback_line="M79+",
                     fallback_min=12,
                 ),
                 _walk_leg("Walk to 435 E 79th St", base_duration_min=2, dx=1, dy=0),
@@ -668,7 +671,7 @@ def build_routes_to_home() -> list[RouteOption]:
             "m79-b-train",
             "B train + M79 SBS bus",
             [
-                _walk_leg("Walk to 1221 Ave of the Americas -> 47-50 Sts station", base_duration_min=2, dx=0, dy=1),
+                _walk_leg("Walk to 47-50 Sts station", base_duration_min=2, dx=0, dy=1),
                 _subway_leg(
                     "{line} train to 81 St-Museum of Natural History",
                     lines=["B", "C"],
@@ -688,7 +691,7 @@ def build_routes_to_home() -> list[RouteOption]:
                     stop_id="MTA_401869",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=10,
-                    fallback_line="M79 SBS",
+                    fallback_line="M79+",
                     fallback_min=10,
                 ),
                 _walk_leg("Walk to 435 E 79th St", base_duration_min=2, dx=1, dy=0),
@@ -716,7 +719,7 @@ def build_routes_to_home() -> list[RouteOption]:
                     fallback_line="M31",
                     fallback_min=20,
                 ),
-                _walk_leg("Walk to 435 E 79th St", base_duration_min=1, dx=0, dy=0),
+                _walk_leg("Walk to 435 E 79th St", base_duration_min=2, dx=0, dy=0),
             ],
         ),
         _route(
@@ -725,7 +728,7 @@ def build_routes_to_home() -> list[RouteOption]:
             [
                 _walk_leg(
                     "Walk straight up to 435 E 79th St",
-                    base_duration_min=51,
+                    base_duration_min=58,
                     dx=8,
                     dy=30,
                 ),

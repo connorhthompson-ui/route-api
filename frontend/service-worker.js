@@ -1,4 +1,4 @@
-const CACHE_NAME = "commute-shell-v3";
+const CACHE_NAME = "commute-shell-v4";
 const SHELL_ASSETS = [
   "/",
   "/index.html",

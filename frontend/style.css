@@ -7,9 +7,9 @@
   --text-dim: #85907d;
   --accent: #6fa287;
   --accent-soft: #e5f0e9;
-  --subway: #4f8266;
+  --subway-default: #6e6e6e;
   --walk: #c9a469;
-  --bus: #8ea6c7;
+  --bus: #0039a6;
 }
 
 * {
@@ -166,8 +166,9 @@ body {
 
 .leg-icon {
   flex-shrink: 0;
-  width: 1.6rem;
   height: 1.6rem;
+  min-width: 1.6rem;
+  padding: 0 0.3rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -182,11 +183,15 @@ body {
 }
 
 .leg-icon.subway {
-  background: var(--subway);
+  background: var(--subway-default);
 }
 
 .leg-icon.bus {
   background: var(--bus);
+  border-radius: 4px;
+  min-width: 2.5rem;
+  font-size: 0.65rem;
+  letter-spacing: -0.02em;
 }
 
 .leg-duration {
