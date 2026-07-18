@@ -8,6 +8,7 @@ class Leg(BaseModel):
     line: Optional[str] = None
     description: str
     duration_min: int
+    base_duration_min: Optional[int] = None
 
 
 class RouteOption(BaseModel):

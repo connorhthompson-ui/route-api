@@ -1,5 +1,12 @@
+const HOME = "435 E 79th St";
+const WORK = "1221 Ave of the Americas";
+
 const routesEl = document.getElementById("routes");
 const refreshBtn = document.getElementById("refresh");
+const swapBtn = document.getElementById("swap");
+const subtitleEl = document.getElementById("subtitle");
+
+let direction = "to_work"; // "to_work" | "to_home"
 
 function legIcon(leg) {
   return leg.mode; // "walk" | "subway" | "bus"
@@ -9,6 +16,11 @@ function legLabel(leg) {
   if (leg.mode === "walk") return "W";
   if (leg.mode === "bus") return "B";
   return leg.line || "S";
+}
+
+function updateSubtitle() {
+  const [from, to] = direction === "to_work" ? [HOME, WORK] : [WORK, HOME];
+  subtitleEl.textContent = `${from} → ${to}`;
 }
 
 function renderRoutes(routes) {
@@ -51,9 +63,10 @@ function renderRoutes(routes) {
 }
 
 async function loadRoutes() {
+  updateSubtitle();
   routesEl.innerHTML = '<p class="status">Loading routes&hellip;</p>';
   try {
-    const res = await fetch("/best-route");
+    const res = await fetch(`/best-route?direction=${direction}`);
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     const routes = await res.json();
     renderRoutes(routes);
@@ -63,6 +76,11 @@ async function loadRoutes() {
 }
 
 refreshBtn.addEventListener("click", loadRoutes);
+
+swapBtn.addEventListener("click", () => {
+  direction = direction === "to_work" ? "to_home" : "to_work";
+  loadRoutes();
+});
 
 loadRoutes();
 

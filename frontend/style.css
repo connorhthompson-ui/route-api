@@ -42,11 +42,39 @@ body {
   margin-bottom: 2.25rem;
 }
 
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.4rem;
+}
+
 .app-header h1 {
-  margin: 0 0 0.4rem;
+  margin: 0;
   font-size: 1.75rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+.swap-btn {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swap-btn:active {
+  opacity: 0.8;
 }
 
 .subtitle {

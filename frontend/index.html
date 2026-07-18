@@ -20,8 +20,11 @@
 <body>
   <main class="app">
     <header class="app-header">
-      <h1>Commute</h1>
-      <p class="subtitle">435 E 79th St &rarr; 1221 Ave of the Americas</p>
+      <div class="header-row">
+        <h1>Commute</h1>
+        <button id="swap" class="swap-btn" type="button" aria-label="Swap direction">&#8646;</button>
+      </div>
+      <p class="subtitle" id="subtitle">435 E 79th St &rarr; 1221 Ave of the Americas</p>
     </header>
 
     <section id="routes" class="routes" aria-live="polite">
