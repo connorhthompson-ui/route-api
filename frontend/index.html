@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Commute</title>
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#f4f7f1" />
+
+  <!-- iOS home screen support (Safari ignores manifest for these) -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Commute" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="app-header">
+      <h1>Commute</h1>
+      <p class="subtitle">435 E 79th St &rarr; 1221 Ave of the Americas</p>
+    </header>
+
+    <section id="routes" class="routes" aria-live="polite">
+      <p class="status">Loading routes&hellip;</p>
+    </section>
+
+    <button id="refresh" class="refresh-btn" type="button">Refresh</button>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
