@@ -1,9 +1,12 @@
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import best_route
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+from app.routers import best_route  # noqa: E402  (must load .env first)
 
 app = FastAPI(title="Route API")
 
