@@ -23,11 +23,12 @@ const SUBWAY_COLORS = {
 };
 
 function legIcon(leg) {
-  return leg.mode; // "walk" | "subway" | "bus"
+  return leg.mode; // "walk" | "wait" | "subway" | "bus"
 }
 
 function legLabel(leg) {
   if (leg.mode === "walk") return "W";
+  if (leg.mode === "wait") return "⏱"; // stopwatch
   if (leg.mode === "bus") return leg.line || "Bus";
   return leg.line || "?";
 }
@@ -36,6 +37,11 @@ function legIconStyle(leg) {
   if (leg.mode !== "subway") return "";
   const color = SUBWAY_COLORS[leg.line];
   return color ? ` style="background:${color}"` : "";
+}
+
+function legDurationText(leg) {
+  if (leg.mode === "wait" && leg.source !== "realtime") return "...";
+  return `${leg.duration_min} min`;
 }
 
 function updateSubtitle() {
@@ -57,10 +63,10 @@ function renderRoutes(routes) {
       const legs = route.legs
         .map(
           (leg) => `
-        <li class="leg">
+        <li class="leg${leg.mode === "wait" ? " leg-wait" : ""}">
           <span class="leg-icon ${legIcon(leg)}"${legIconStyle(leg)}>${legLabel(leg)}</span>
           <span>${leg.description}</span>
-          <span class="leg-duration">${leg.duration_min} min</span>
+          <span class="leg-duration">${legDurationText(leg)}</span>
         </li>`
         )
         .join("");

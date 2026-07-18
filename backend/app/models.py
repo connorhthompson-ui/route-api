@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class Leg(BaseModel):
-    mode: Literal["walk", "subway", "bus"]
+    mode: Literal["walk", "wait", "subway", "bus"]
     line: Optional[str] = None
     description: str
     duration_min: int

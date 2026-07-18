@@ -31,10 +31,12 @@ class RouteUnavailable(Exception):
 
 
 # A leg builder takes the current "clock" (when the rider would arrive at
-# the start of this leg) and returns the resolved Leg plus the clock
-# advanced to when the rider arrives at the end of this leg. It may raise
-# RouteUnavailable if the leg is marked required and no live service exists.
-LegBuilder = Callable[[datetime], tuple[Leg, datetime]]
+# the start of this leg) and returns the resolved leg(s) -- usually one,
+# but a subway/bus leg builder emits a "wait" leg followed by the ride
+# leg -- plus the clock advanced to when the rider arrives at the end of
+# this leg. It may raise RouteUnavailable if the leg is marked required
+# and no live service exists.
+LegBuilder = Callable[[datetime], tuple[list[Leg], datetime]]
 
 
 def _diagonal_discount(dx: int, dy: int) -> float:
@@ -42,18 +44,32 @@ def _diagonal_discount(dx: int, dy: int) -> float:
     return 1.0 - (ratio * MAX_SAVINGS)
 
 
+def _wait_leg(wait_min: Optional[float]) -> Leg:
+    # wait_min is None when there's no live prediction at all -- the
+    # frontend shows "..." instead of a number in that case, since we
+    # genuinely don't know the wait (as opposed to knowing it's ~0).
+    if wait_min is None:
+        return Leg(mode="wait", description="Wait time", duration_min=0, source="scheduled_fallback")
+    return Leg(
+        mode="wait",
+        description="Wait time",
+        duration_min=max(round(wait_min), 0),
+        source="realtime",
+    )
+
+
 def _walk_leg(description: str, base_duration_min: int, dx: int, dy: int) -> LegBuilder:
     discount = _diagonal_discount(dx, dy)
     duration_min = round(base_duration_min * discount)
 
-    def build(clock: datetime) -> tuple[Leg, datetime]:
+    def build(clock: datetime) -> tuple[list[Leg], datetime]:
         leg = Leg(
             mode="walk",
             description=description,
             base_duration_min=base_duration_min,
             duration_min=duration_min,
         )
-        return leg, clock + timedelta(minutes=duration_min)
+        return [leg], clock + timedelta(minutes=duration_min)
 
     return build
 
@@ -67,33 +83,36 @@ def _subway_leg(
     fallback_min: int,
     required: bool = False,
 ) -> LegBuilder:
-    def build(clock: datetime) -> tuple[Leg, datetime]:
+    def build(clock: datetime) -> tuple[list[Leg], datetime]:
         try:
             prediction = next_subway_leg(lines, board_stop_id, clock, alight_stop_id)
         except Exception:
             prediction = None
 
         if prediction and prediction["alight_time"] is not None:
+            board_time = prediction["board_time"]
             new_clock = prediction["alight_time"]
-            duration_min = max(round((new_clock - clock).total_seconds() / 60), 1)
+            wait_min = (board_time - clock).total_seconds() / 60
+            ride_min = max(round((new_clock - board_time).total_seconds() / 60), 1)
             line = prediction["line"]
             source = "realtime"
         elif required:
             raise RouteUnavailable()
         else:
             new_clock = clock + timedelta(minutes=fallback_min)
-            duration_min = fallback_min
+            wait_min = None
+            ride_min = fallback_min
             line = fallback_line
             source = "scheduled_fallback"
 
-        leg = Leg(
+        ride_leg = Leg(
             mode="subway",
             line=line,
             description=description.format(line=line),
-            duration_min=duration_min,
+            duration_min=ride_min,
             source=source,
         )
-        return leg, new_clock
+        return [_wait_leg(wait_min), ride_leg], new_clock
 
     return build
 
@@ -107,37 +126,40 @@ def _bus_leg(
     fallback_line: str,
     fallback_min: int,
 ) -> LegBuilder:
-    def build(clock: datetime) -> tuple[Leg, datetime]:
+    def build(clock: datetime) -> tuple[list[Leg], datetime]:
         try:
             prediction = next_bus_leg(stop_id, route_id, clock, alight_stop_id)
         except Exception:
             prediction = None
 
         if prediction:
+            board_time = prediction["board_time"]
+            wait_min = (board_time - clock).total_seconds() / 60
             ride_min = prediction["ride_min"]
             if ride_min is not None:
-                source = "realtime"
+                ride_source = "realtime"
             else:
                 # Got a live wait time but OnwardCalls didn't have the
                 # alighting stop -- still use the static ride estimate,
                 # but this isn't a fully live number.
                 ride_min = static_ride_min
-                source = "scheduled_fallback"
-            new_clock = prediction["board_time"] + timedelta(minutes=ride_min)
-            duration_min = max(round((new_clock - clock).total_seconds() / 60), 1)
+                ride_source = "scheduled_fallback"
+            new_clock = board_time + timedelta(minutes=ride_min)
+            ride_min = max(round(ride_min), 1)
         else:
             new_clock = clock + timedelta(minutes=fallback_min)
-            duration_min = fallback_min
-            source = "scheduled_fallback"
+            wait_min = None
+            ride_min = fallback_min
+            ride_source = "scheduled_fallback"
 
-        leg = Leg(
+        ride_leg = Leg(
             mode="bus",
             line=fallback_line,
             description=description,
-            duration_min=duration_min,
-            source=source,
+            duration_min=ride_min,
+            source=ride_source,
         )
-        return leg, new_clock
+        return [_wait_leg(wait_min), ride_leg], new_clock
 
     return build
 
@@ -151,8 +173,8 @@ def _route(
     legs: list[Leg] = []
     try:
         for build in leg_builders:
-            leg, clock = build(clock)
-            legs.append(leg)
+            new_legs, clock = build(clock)
+            legs.extend(new_legs)
     except RouteUnavailable:
         return None
 

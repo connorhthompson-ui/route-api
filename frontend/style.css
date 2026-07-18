@@ -194,6 +194,18 @@ body {
   letter-spacing: -0.02em;
 }
 
+.leg-icon.wait {
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.leg-wait {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  opacity: 0.85;
+}
+
 .leg-duration {
   margin-left: auto;
   color: var(--text-dim);
