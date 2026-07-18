@@ -9,6 +9,7 @@ class Leg(BaseModel):
     description: str
     duration_min: int
     base_duration_min: Optional[int] = None
+    source: Optional[Literal["realtime", "scheduled_fallback"]] = None
 
 
 class RouteOption(BaseModel):

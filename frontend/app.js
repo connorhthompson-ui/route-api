@@ -49,13 +49,11 @@ function renderRoutes(routes) {
     return;
   }
 
-  const fastest = routes.reduce((a, b) =>
-    a.total_duration_min <= b.total_duration_min ? a : b
-  );
+  const sorted = [...routes].sort((a, b) => a.total_duration_min - b.total_duration_min);
 
-  routesEl.innerHTML = routes
-    .map((route) => {
-      const isFastest = route.id === fastest.id;
+  routesEl.innerHTML = sorted
+    .map((route, index) => {
+      const isFastest = index === 0;
       const legs = route.legs
         .map(
           (leg) => `

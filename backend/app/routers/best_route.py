@@ -77,18 +77,21 @@ def _subway_leg(
             new_clock = prediction["alight_time"]
             duration_min = max(round((new_clock - clock).total_seconds() / 60), 1)
             line = prediction["line"]
+            source = "realtime"
         elif required:
             raise RouteUnavailable()
         else:
             new_clock = clock + timedelta(minutes=fallback_min)
             duration_min = fallback_min
             line = fallback_line
+            source = "scheduled_fallback"
 
         leg = Leg(
             mode="subway",
             line=line,
             description=description.format(line=line),
             duration_min=duration_min,
+            source=source,
         )
         return leg, new_clock
 
@@ -98,6 +101,7 @@ def _subway_leg(
 def _bus_leg(
     description: str,
     stop_id: str,
+    alight_stop_id: str,
     route_id: str,
     static_ride_min: int,
     fallback_line: str,
@@ -105,18 +109,34 @@ def _bus_leg(
 ) -> LegBuilder:
     def build(clock: datetime) -> tuple[Leg, datetime]:
         try:
-            prediction = next_bus_leg(stop_id, route_id, clock)
+            prediction = next_bus_leg(stop_id, route_id, clock, alight_stop_id)
         except Exception:
             prediction = None
 
         if prediction:
-            new_clock = prediction["board_time"] + timedelta(minutes=static_ride_min)
+            ride_min = prediction["ride_min"]
+            if ride_min is not None:
+                source = "realtime"
+            else:
+                # Got a live wait time but OnwardCalls didn't have the
+                # alighting stop -- still use the static ride estimate,
+                # but this isn't a fully live number.
+                ride_min = static_ride_min
+                source = "scheduled_fallback"
+            new_clock = prediction["board_time"] + timedelta(minutes=ride_min)
             duration_min = max(round((new_clock - clock).total_seconds() / 60), 1)
         else:
             new_clock = clock + timedelta(minutes=fallback_min)
             duration_min = fallback_min
+            source = "scheduled_fallback"
 
-        leg = Leg(mode="bus", line=fallback_line, description=description, duration_min=duration_min)
+        leg = Leg(
+            mode="bus",
+            line=fallback_line,
+            description=description,
+            duration_min=duration_min,
+            source=source,
+        )
         return leg, new_clock
 
     return build
@@ -180,8 +200,43 @@ M79_ROUTE_ID = "MTA NYCT_M79+"
 M31_ROUTE_ID = "MTA NYCT_M31"
 M7_ROUTE_ID = "MTA NYCT_M7"
 
+# BusTime allows ~1 live request per 30s, globally, shared across every
+# stop -- there's no way to get fresh data for every bus leg on every
+# request. So before building any routes, we "prewarm" the shared bus
+# cache in a fixed priority order (M79, then M7, then M31): each call
+# either serves from its own still-fresh per-stop cache (cheap, doesn't
+# touch the rate limit) or, if that stop's cache is stale, spends the one
+# available live slot on it. Whichever line most needs a refresh, in
+# priority order, gets it -- rather than whichever leg happens to be
+# built first while iterating the route list.
+_BUS_PREWARM_ORDER = {
+    "to_work": [
+        ("MTA_401882", M79_ROUTE_ID),  # M79 westbound (shared by all to-work M79 legs)
+        ("MTA_401096", M7_ROUTE_ID),  # M7 southbound
+        ("MTA_402348", M31_ROUTE_ID),  # M31 southbound
+    ],
+    "to_home": [
+        ("MTA_405169", M79_ROUTE_ID),  # M79 eastbound -- 6 train transfer (primary route)
+        ("MTA_403523", M79_ROUTE_ID),  # M79 eastbound -- 1 train transfer
+        ("MTA_401024", M79_ROUTE_ID),  # M79 eastbound -- M7 transfer
+        ("MTA_401869", M79_ROUTE_ID),  # M79 eastbound -- B train transfer
+        ("MTA_400938", M7_ROUTE_ID),  # M7 northbound
+        ("MTA_403621", M31_ROUTE_ID),  # M31 northbound
+    ],
+}
+
+
+def _prewarm_bus_cache(direction: Literal["to_work", "to_home"]) -> None:
+    now = datetime.now(NY_TZ)
+    for stop_id, route_id in _BUS_PREWARM_ORDER[direction]:
+        try:
+            next_bus_leg(stop_id, route_id, now)
+        except Exception:
+            pass
+
 
 def build_routes_to_work() -> list[RouteOption]:
+    _prewarm_bus_cache("to_work")
     candidates: list[Optional[RouteOption]] = [
         _route(
             "6-train-77th",
@@ -207,6 +262,7 @@ def build_routes_to_work() -> list[RouteOption]:
                 _bus_leg(
                     "M79 Select Bus westbound to Lexington Ave",
                     stop_id="MTA_401882",
+                    alight_stop_id="MTA_404860",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=6,
                     fallback_line="M79+",
@@ -346,6 +402,7 @@ def build_routes_to_work() -> list[RouteOption]:
                 _bus_leg(
                     "M79 Select Bus westbound to Broadway",
                     stop_id="MTA_401882",
+                    alight_stop_id="MTA_401893",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=14,
                     fallback_line="M79+",
@@ -371,6 +428,7 @@ def build_routes_to_work() -> list[RouteOption]:
                 _bus_leg(
                     "M79 Select Bus westbound to Amsterdam Ave",
                     stop_id="MTA_401882",
+                    alight_stop_id="MTA_403733",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=12,
                     fallback_line="M79+",
@@ -380,6 +438,7 @@ def build_routes_to_work() -> list[RouteOption]:
                 _bus_leg(
                     "M7 bus to 7th Ave & 50th St",
                     stop_id="MTA_401096",
+                    alight_stop_id="MTA_403797",
                     route_id=M7_ROUTE_ID,
                     static_ride_min=18,
                     fallback_line="M7",
@@ -396,6 +455,7 @@ def build_routes_to_work() -> list[RouteOption]:
                 _bus_leg(
                     "M79 Select Bus westbound to Central Park West",
                     stop_id="MTA_401882",
+                    alight_stop_id="MTA_401889",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=10,
                     fallback_line="M79+",
@@ -426,6 +486,7 @@ def build_routes_to_work() -> list[RouteOption]:
                 _bus_leg(
                     "M31 bus to 57th St & 6th Ave",
                     stop_id="MTA_402348",
+                    alight_stop_id="MTA_402229",
                     route_id=M31_ROUTE_ID,
                     static_ride_min=20,
                     fallback_line="M31",
@@ -461,6 +522,7 @@ def build_routes_to_work() -> list[RouteOption]:
 
 
 def build_routes_to_home() -> list[RouteOption]:
+    _prewarm_bus_cache("to_home")
     candidates: list[Optional[RouteOption]] = [
         _route(
             "6-train-77th",
@@ -495,6 +557,7 @@ def build_routes_to_home() -> list[RouteOption]:
                 _bus_leg(
                     "M79 Select Bus eastbound to 1st Ave",
                     stop_id="MTA_405169",
+                    alight_stop_id="MTA_401876",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=6,
                     fallback_line="M79+",
@@ -634,6 +697,7 @@ def build_routes_to_home() -> list[RouteOption]:
                 _bus_leg(
                     "M79 Select Bus eastbound to 1st Ave",
                     stop_id="MTA_403523",
+                    alight_stop_id="MTA_401876",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=14,
                     fallback_line="M79+",
@@ -650,6 +714,7 @@ def build_routes_to_home() -> list[RouteOption]:
                 _bus_leg(
                     "M7 bus to Amsterdam Ave & 79th St",
                     stop_id="MTA_400938",
+                    alight_stop_id="MTA_401024",
                     route_id=M7_ROUTE_ID,
                     static_ride_min=18,
                     fallback_line="M7",
@@ -659,6 +724,7 @@ def build_routes_to_home() -> list[RouteOption]:
                 _bus_leg(
                     "M79 Select Bus eastbound to 1st Ave",
                     stop_id="MTA_401024",
+                    alight_stop_id="MTA_401876",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=12,
                     fallback_line="M79+",
@@ -689,6 +755,7 @@ def build_routes_to_home() -> list[RouteOption]:
                 _bus_leg(
                     "M79 Select Bus eastbound to 1st Ave",
                     stop_id="MTA_401869",
+                    alight_stop_id="MTA_401876",
                     route_id=M79_ROUTE_ID,
                     static_ride_min=10,
                     fallback_line="M79+",
@@ -714,6 +781,7 @@ def build_routes_to_home() -> list[RouteOption]:
                 _bus_leg(
                     "M31 bus to York Ave & 79th St",
                     stop_id="MTA_403621",
+                    alight_stop_id="MTA_401877",
                     route_id=M31_ROUTE_ID,
                     static_ride_min=20,
                     fallback_line="M31",
