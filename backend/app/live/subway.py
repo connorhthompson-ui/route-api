@@ -14,9 +14,19 @@ from threading import Lock
 from typing import Optional, TypedDict
 from zoneinfo import ZoneInfo
 
+from datetime import timedelta
+
 from nyct_gtfs import NYCTFeed
 
 NY_TZ = ZoneInfo("America/New_York")
+
+# GTFS-realtime occasionally serves a stale or corrupt TripUpdate for a
+# brief window (a known real-world quirk of live transit feeds) that can
+# claim a train is hours away. No real NYC subway service has a gap that
+# large, so anything beyond this is treated as unreliable data rather
+# than a genuine prediction, and the caller falls back to the static
+# estimate instead.
+MAX_PLAUSIBLE_WAIT_MIN = 60
 
 _FEED_CACHE_TTL_SECONDS = 15
 _feed_cache: dict[str, tuple[float, NYCTFeed]] = {}
@@ -78,6 +88,8 @@ def next_subway_leg(
             board_time = _as_ny(trip.stop_time_updates[board_idx].arrival)
             if board_time < earliest_time:
                 continue  # departs before the rider could get there
+            if board_time > earliest_time + timedelta(minutes=MAX_PLAUSIBLE_WAIT_MIN):
+                continue  # implausibly far out -- likely stale/corrupt feed data
 
             alight_time = None
             if alight_stop_id:

@@ -22,11 +22,17 @@ already spent on the wait time.
 
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from threading import Lock
 from typing import Optional, TypedDict
 
 import requests
+
+# Same rationale as subway.py: live feeds occasionally serve a stale or
+# corrupt prediction claiming a vehicle is hours away. No real bus route
+# has a gap that large, so anything beyond this is treated as unreliable
+# and the caller falls back to the static estimate instead.
+MAX_PLAUSIBLE_WAIT_MIN = 60
 
 _CACHE_TTL_SECONDS = 25
 _cache: dict[tuple[str, str], tuple[float, dict]] = {}
@@ -130,7 +136,7 @@ def next_bus_leg(
             expected = datetime.fromisoformat(call["ExpectedArrivalTime"])
         except (KeyError, ValueError):
             continue
-        if expected >= earliest_time:
+        if earliest_time <= expected <= earliest_time + timedelta(minutes=MAX_PLAUSIBLE_WAIT_MIN):
             candidates.append((expected, visit))
 
     if not candidates:
